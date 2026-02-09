@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# Secrets & credentials
+.env
+*.secret
+credentials.json
+settings.local.json
+
+# macOS
+.DS_Store
+._*
+
+# IDE
+.vscode/
+.idea/
+
+# Temp
+*.tmp
+*.bak
+scratchpad/
