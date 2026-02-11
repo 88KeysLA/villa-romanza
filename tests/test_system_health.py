@@ -193,7 +193,7 @@ class TestCrestronConnectivity:
             verify=False, timeout=10,
         )
         assert r.status_code == 200, "Crestron auth failed"
-        return r.json()["AuthKey"]
+        return r.json()["authkey"]
 
     def test_authenticate(self):
         key = self._auth()
