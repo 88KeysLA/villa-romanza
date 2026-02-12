@@ -26,6 +26,7 @@ CRITICAL_DEVICES = {
 }
 SAMPLE_SONOS = ["192.168.0.100", "192.168.0.101", "192.168.0.102"]
 SAMPLE_HUE = ["192.168.20.10", "192.168.20.11"]
+SAMPLE_SYNC_BOXES = ["192.168.20.86", "192.168.20.92", "192.168.20.95"]  # Bar, Great Room, Theatre
 
 
 def _ping(ip: str) -> bool:
@@ -50,7 +51,6 @@ class TestNetworkReachability:
     def test_device_reachable(self, name, ip):
         assert _ping(ip), f"{name} at {ip} unreachable"
 
-    @pytest.mark.xfail(reason="NVR currently offline — physical issue")
     def test_nvr(self):
         assert _ping("192.168.4.7"), "NVR 192.168.4.7 unreachable"
 
@@ -63,6 +63,11 @@ class TestNetworkReachability:
     @pytest.mark.parametrize("ip", SAMPLE_HUE)
     def test_hue_bridges(self, ip):
         assert _ping(ip), f"Hue bridge at {ip} unreachable"
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("ip", SAMPLE_SYNC_BOXES)
+    def test_sync_boxes(self, ip):
+        assert _ping(ip), f"Hue Sync Box at {ip} unreachable"
 
 
 # ── Home Assistant Integrations ───────────────────────────────────
@@ -92,7 +97,7 @@ class TestHAIntegrations:
         assert "components" in data
 
     @pytest.mark.parametrize("integration", [
-        "hdfury", "hue", "sonos", "anthemav", "crestron_home", "unifi",
+        "hdfury", "hue", "sonos", "anthemav", "crestron_home", "unifi", "huesyncbox",
     ])
     def test_integration_loaded(self, integration):
         r = self._get("/api/config")
@@ -237,3 +242,45 @@ class TestSonosReachability:
             assert r.status_code == 200, f"Sonos at {ip} returned {r.status_code}"
         except httpx.ConnectError:
             pytest.fail(f"Sonos at {ip} not responding on port 1400")
+
+
+# ── Hue Sync Box Integration ────────────────────────────────────
+
+@pytest.mark.ha
+@pytest.mark.network
+class TestHueSyncBoxes:
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, ha_base_url, ha_token):
+        self.url = ha_base_url
+        self.headers = {"Authorization": f"Bearer {ha_token}"}
+
+    def _get(self, path):
+        return httpx.get(f"{self.url}{path}", headers=self.headers, timeout=10)
+
+    def test_sync_box_entities_exist(self):
+        """At least some Hue Sync Box entities should exist after pairing."""
+        r = self._get("/api/states")
+        assert r.status_code == 200
+        states = r.json()
+        # huesyncbox creates select/switch/sensor/number entities after pairing
+        # Exclude update.* entities (HACS update tracker, not actual devices)
+        hsb_entities = [s for s in states
+                        if "sync_mode" in s.get("entity_id", "")]
+        assert len(hsb_entities) >= 15, f"Expected >=15 sync_mode entities, got {len(hsb_entities)}"
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("ip", SAMPLE_SYNC_BOXES)
+    def test_sync_box_api_reachable(self, ip):
+        """Hue Sync Boxes expose a REST API on port 443."""
+        try:
+            r = httpx.get(
+                f"https://{ip}/api/v1/device",
+                verify=False, timeout=5,
+            )
+            assert r.status_code == 200, f"Sync box at {ip} returned {r.status_code}"
+            data = r.json()
+            assert "uniqueId" in data, f"Sync box at {ip} missing uniqueId"
+            assert data.get("deviceType") == "HSB2", f"Unexpected device type at {ip}"
+        except httpx.ConnectError:
+            pytest.fail(f"Sync box at {ip} not responding on port 443")
