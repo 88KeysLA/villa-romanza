@@ -28,6 +28,22 @@ SAMPLE_SONOS = ["192.168.0.100", "192.168.0.101", "192.168.0.102"]
 SAMPLE_HUE = ["192.168.20.10", "192.168.20.11"]
 SAMPLE_SYNC_BOXES = ["192.168.20.86", "192.168.20.92", "192.168.20.95"]  # Bar, Great Room, Theatre
 
+# Security VLAN Access devices (new reserved IPs after DHCP lockdown 2026-02-13)
+ACCESS_HUBS = {
+    "gate_hub": "192.168.4.10",
+    "door_hub": "192.168.4.11",
+}
+ACCESS_READERS = {
+    "gate_intercom": "192.168.4.20",
+    "entrata_intercom": "192.168.4.21",
+    "north_porta": "192.168.4.22",
+    "motor_court_reader": "192.168.4.23",
+    "plaza_gate_reader": "192.168.4.24",
+    "garage_in_reader": "192.168.4.25",
+    "cabana_reader": "192.168.4.26",
+}
+SAMPLE_CAMERAS = ["192.168.4.50", "192.168.4.60", "192.168.4.80"]  # Garden, Kitchen, RoofNorth
+
 
 def _ping(ip: str) -> bool:
     """Ping an IP once with 2s timeout (macOS)."""
@@ -284,3 +300,37 @@ class TestHueSyncBoxes:
             assert data.get("deviceType") == "HSB2", f"Unexpected device type at {ip}"
         except httpx.ConnectError:
             pytest.fail(f"Sync box at {ip} not responding on port 443")
+
+
+# ── Access Devices (Security VLAN) ─────────────────────────────
+
+@pytest.mark.security
+@pytest.mark.network
+class TestAccessDevices:
+
+    @pytest.mark.parametrize("name,ip", list(ACCESS_HUBS.items()))
+    def test_access_hub_reachable(self, name, ip):
+        assert _ping(ip), f"Access hub {name} at {ip} unreachable"
+
+    @pytest.mark.parametrize("name,ip", list(ACCESS_READERS.items()))
+    def test_access_reader_reachable(self, name, ip):
+        assert _ping(ip), f"Access reader {name} at {ip} unreachable"
+
+    def test_nvr_access_api_port(self):
+        """NVR Access controller listens on port 12443."""
+        try:
+            r = httpx.get(
+                "https://192.168.4.7:12443/",
+                verify=False, timeout=5,
+            )
+            # Any HTTP response means the port is up (auth may block us)
+            assert r.status_code < 500, (
+                f"NVR Access port 12443 returned server error {r.status_code}"
+            )
+        except httpx.ConnectError:
+            pytest.fail("NVR Access API port 12443 not responding")
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize("ip", SAMPLE_CAMERAS)
+    def test_sample_cameras_reachable(self, ip):
+        assert _ping(ip), f"Camera at {ip} unreachable"

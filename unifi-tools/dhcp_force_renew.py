@@ -147,6 +147,11 @@ RESERVATIONS_CORE = [
     ("SNS-PT-SyncFeed", "38:42:0b:8f:0c:ce", "192.168.0.123"),
     ("SNS-PT-Sunroom", "00:1b:66:04:0a:e9", "192.168.0.124"),
     ("SNS-PicnicSub", "74:ca:60:31:da:dc", "192.168.0.125"),
+    # Master Suite Sonos (Era 300s, Era 100, Sub 4)
+    ("SNS-MasterRear", "80:4a:f2:90:7d:5c", "192.168.0.108"),
+    ("SNS-MasterBedL", "80:4a:f2:86:57:6c", "192.168.0.126"),
+    ("SNS-MasterBedR", "80:4a:f2:86:53:9c", "192.168.0.127"),
+    ("SNS-MasterSub", "c4:38:75:d3:6e:92", "192.168.0.128"),
     # AVRs
     ("AVR-Bar", "50:1e:2d:43:a0:c0", "192.168.0.130"),
     ("AVR-Master", "50:1e:2d:43:93:72", "192.168.0.131"),
@@ -190,9 +195,66 @@ RESERVATIONS_LIGHTING = [
     ("HueB-26-MB2", "c4:29:96:b9:a9:9f", "192.168.20.36"),
     ("HueB-Cabana", "c4:29:96:b4:14:7a", "192.168.20.37"),
     ("HueB-Entrata2", "c4:29:96:b4:23:fd", "192.168.20.38"),
+    # Hue Sync Boxes (VLAN 20) — only out-of-range boxes that need reservations
+    ("HSB-Showtime", "c4:29:96:e2:1b:78", "192.168.20.87"),
+    ("HSB-Studio", "c4:29:96:e2:28:14", "192.168.20.100"),
 ]
 
-ALL_RESERVATIONS = RESERVATIONS_CORE + RESERVATIONS_LIGHTING
+RESERVATIONS_SECURITY = [
+    # NVR & Infrastructure
+    ("SEC-NVR", "0c:ea:14:32:66:01", "192.168.4.7"),
+    ("SEC-AI-Key", "8c:ed:e1:12:3e:4b", "192.168.4.8"),
+    # Access Hubs
+    ("AXS-Gate-Hub", "1c:6a:1b:5b:79:38", "192.168.4.10"),
+    ("AXS-Door-Hub", "1c:6a:1b:3e:9c:15", "192.168.4.11"),
+    # Access Readers / Intercoms
+    ("AXS-Gate", "84:78:48:32:c7:80", "192.168.4.20"),
+    ("AXS-Entrata", "1c:0b:8b:cc:85:1e", "192.168.4.21"),
+    ("AXS-NorthPorta", "1c:0b:8b:cc:8b:fa", "192.168.4.22"),
+    ("AXS-MotorCourt", "1c:0b:8b:d0:db:64", "192.168.4.23"),
+    ("AXS-PlazaGate", "1c:0b:8b:d0:e5:f2", "192.168.4.24"),
+    ("AXS-GarageIn", "1c:0b:8b:d0:ed:00", "192.168.4.25"),
+    ("AXS-Cabana", "1c:0b:8b:d0:e7:fa", "192.168.4.26"),
+    # Cameras — Entry / Front
+    ("CAM-VillaRollup", "1c:6a:1b:88:1a:a0", "192.168.4.40"),
+    ("CAM-Vestibule", "1c:0b:8b:92:96:47", "192.168.4.41"),
+    ("CAM-MotorCourt", "1c:0b:8b:92:df:93", "192.168.4.42"),
+    ("CAM-Road", "94:2a:6f:d0:bf:20", "192.168.4.43"),
+    # Cameras — Garden / Perimeter
+    ("CAM-Garden", "1c:0b:8b:94:bc:ff", "192.168.4.50"),
+    ("CAM-GardenDome", "1c:0b:8b:92:99:85", "192.168.4.51"),
+    ("CAM-Hill", "1c:6a:1b:81:e5:7a", "192.168.4.52"),
+    ("CAM-NorthLawn", "1c:0b:8b:94:ba:e1", "192.168.4.53"),
+    ("CAM-EastLawn", "1c:0b:8b:94:bd:7f", "192.168.4.54"),
+    ("CAM-DoggyCam", "84:78:48:2a:10:ca", "192.168.4.55"),
+    ("CAM-Playground", "8c:30:66:c6:7d:d1", "192.168.4.56"),
+    # Cameras — Main House Interior
+    ("CAM-Kitchen", "84:78:48:2a:17:0c", "192.168.4.60"),
+    ("CAM-Dining", "84:78:48:2a:19:e0", "192.168.4.61"),
+    ("CAM-Bar", "84:78:48:2a:18:e6", "192.168.4.62"),
+    ("CAM-SouthHall", "84:78:48:2a:0c:c0", "192.168.4.63"),
+    ("CAM-UpperHall", "84:78:48:2a:22:f4", "192.168.4.64"),
+    ("CAM-SunRoom", "28:70:4e:19:3c:1c", "192.168.4.65"),
+    ("CAM-MachRoom", "1c:6a:1b:83:03:78", "192.168.4.66"),
+    ("CAM-Garage", "1c:0b:8b:92:9f:d3", "192.168.4.67"),
+    # Cameras — Outdoor Structures
+    ("CAM-Veranda", "1c:0b:8b:94:bc:9d", "192.168.4.70"),
+    ("CAM-Loggia", "84:78:48:2a:1b:2e", "192.168.4.71"),
+    ("CAM-Terrace", "1c:0b:8b:92:db:b8", "192.168.4.72"),
+    ("CAM-Pool", "28:70:4e:1f:0e:56", "192.168.4.73"),
+    ("CAM-Cabana", "84:78:48:2a:0a:d8", "192.168.4.74"),
+    ("CAM-Plaza", "28:70:4e:1e:f1:29", "192.168.4.75"),
+    # Cameras — Roof
+    ("CAM-RoofNorth", "94:2a:6f:d0:cc:d9", "192.168.4.80"),
+    ("CAM-RoofSouth", "94:2a:6f:d0:cd:02", "192.168.4.81"),
+    ("CAM-RoofEast", "1c:0b:8b:f4:c1:63", "192.168.4.82"),
+    ("CAM-RoofWest", "1c:0b:8b:f4:c4:d4", "192.168.4.83"),
+]
+
+# Security VLAN network config ID (from UniFi)
+SECURITY_NET_ID = "6844f5d9f4f53a4a462e1392"  # placeholder — update after API lookup
+
+ALL_RESERVATIONS = RESERVATIONS_CORE + RESERVATIONS_LIGHTING + RESERVATIONS_SECURITY
 
 # Build expected IP map: mac -> (name, ip)
 EXPECTED = {mac.lower(): (name, ip) for name, mac, ip in ALL_RESERVATIONS}
@@ -395,6 +457,8 @@ def force_renew(api: UniFiAPI):
     print(f"    Core VLAN: {'OK' if s1 == 200 else f'FAIL ({s1})'}")
     s2, _ = api.put(f"/rest/networkconf/{LIGHTING_NET_ID}", {"dhcpd_leasetime": TEMP_LEASE_TIME})
     print(f"    Lighting VLAN: {'OK' if s2 == 200 else f'FAIL ({s2})'}")
+    s2b, _ = api.put(f"/rest/networkconf/{SECURITY_NET_ID}", {"dhcpd_leasetime": TEMP_LEASE_TIME})
+    print(f"    Security VLAN: {'OK' if s2b == 200 else f'FAIL ({s2b})'}")
 
     # Step 2: Force-provision gateway (restarts DHCP, clears lease table)
     print(f"\n  Step 2: Force-provisioning gateway...")
@@ -422,6 +486,8 @@ def force_renew(api: UniFiAPI):
     print(f"    Core VLAN: {'OK' if s4 == 200 else f'FAIL ({s4})'}")
     s5, _ = api.put(f"/rest/networkconf/{LIGHTING_NET_ID}", {"dhcpd_leasetime": NORMAL_LEASE_TIME})
     print(f"    Lighting VLAN: {'OK' if s5 == 200 else f'FAIL ({s5})'}")
+    s5b, _ = api.put(f"/rest/networkconf/{SECURITY_NET_ID}", {"dhcpd_leasetime": NORMAL_LEASE_TIME})
+    print(f"    Security VLAN: {'OK' if s5b == 200 else f'FAIL ({s5b})'}")
 
     # Step 6: Re-provision with restored settings
     print(f"\n  Step 6: Re-provisioning gateway with restored lease time...")
@@ -580,7 +646,8 @@ def verify(api: UniFiAPI, wait_secs: int = 0):
     if unreachable:
         print(f"\n  Not yet reachable at new IP (will migrate on next DHCP renewal):")
         # Group by category
-        cats = {"TP-": [], "SNS-": [], "HueB-": [], "TV-": [], "ATV-": [], "AVR-": []}
+        cats = {"TP-": [], "SNS-": [], "HueB-": [], "TV-": [], "ATV-": [], "AVR-": [],
+                "CAM-": [], "AXS-": [], "SEC-": [], "HSB-": []}
         other = []
         for name, ip, mac in unreachable:
             placed = False
