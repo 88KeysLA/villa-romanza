@@ -44,20 +44,20 @@ ACCESS_READERS = {
 }
 SAMPLE_CAMERAS = ["192.168.4.50", "192.168.4.60", "192.168.4.80"]  # Garden, Kitchen, RoofNorth
 
-# Smart Things VLAN devices (current DHCP IPs until reservations are applied)
+# Smart Things VLAN devices (reserved IPs after DHCP lockdown 2026-02-15)
 SMART_THINGS_ECOBEES = {
-    "eco_1": "192.168.6.118",
-    "eco_2": "192.168.6.121",
-    "eco_3": "192.168.6.147",
-    "eco_4": "192.168.6.178",
-    "eco_5": "192.168.6.180",
-    "eco_6": "192.168.6.209",
+    "temp_master": "192.168.6.20",
+    "temp_dining": "192.168.6.21",
+    "temp_uphall": "192.168.6.22",
+    "temp_north_hall": "192.168.6.23",
+    "temp_cabana": "192.168.6.24",
+    "temp_studio": "192.168.6.25",
 }
 SMART_THINGS_MYQ = {
-    "myq_1": "192.168.6.50",
-    "myq_2": "192.168.6.51",
-    "myq_3": "192.168.6.52",
-    "myq_4": "192.168.6.53",
+    "acc_garage_x": "192.168.6.50",
+    "acc_garage_1": "192.168.6.51",
+    "acc_garage_2": "192.168.6.52",
+    "acc_garage_y": "192.168.6.53",
 }
 
 
@@ -366,11 +366,11 @@ class TestSmartThingsVLAN:
     def test_myq_reachable(self, name, ip):
         assert _ping(ip), f"MyQ {name} at {ip} unreachable"
 
-    def test_rachio_reachable(self):
-        assert _ping("192.168.6.182"), "Rachio sprinkler at 192.168.6.182 unreachable"
+    def test_sprinkler_reachable(self):
+        assert _ping("192.168.6.10"), "Sprinkler controller at 192.168.6.10 unreachable"
 
-    def test_irobot_reachable(self):
-        assert _ping("192.168.6.196"), "iRobot at 192.168.6.196 unreachable"
+    def test_peloton_reachable(self):
+        assert _ping("192.168.6.62"), "Peloton at 192.168.6.62 unreachable"
 
 
 # ── AV Room Entities ─────────────────────────────────────────────
