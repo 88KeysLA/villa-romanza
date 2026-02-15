@@ -571,12 +571,12 @@ Entertainment area "Master Theatre" (`15434d2f-c3b5-45ee-bb5f-41331942f956`) was
 | Master TV Tube | Yes | 1.0 | Above-TV tube |
 | Master Bed Tube | Yes | 1.0 | Bed headboard tube |
 | TV Floor | Yes | 1.0 | Floor glow |
-| Wall Washer 1 (Bed Left) | Yes | **0.3** | Reduced to 30% — prevents wall wash from overpowering TV |
-| Wall Washer 2 (Bed Right) | Yes | **0.3** | Reduced to 30% — prevents wall wash from overpowering TV |
+| Wall Washer 1 (Bed Left) | Yes | 1.0 | Full brightness — tested 30%/50%/100%, 100% preferred |
+| Wall Washer 2 (Bed Right) | Yes | 1.0 | Full brightness — tested 30%/50%/100%, 100% preferred |
 | **Master Lamp L** | **Removed** | — | Set to 1% warm dim (2200K) by script |
 | **Master Lamp R** | **Removed** | — | Set to 1% warm dim (2200K) by script |
 
-Wall washer equalization set via Hue v2 API on the entertainment area resource (not through HA).
+Wall washer equalization tested at 30%, 50%, and 100% via Hue v2 API. 100% (full) was preferred.
 
 ### HSB Intensity
 `select.master2_intensity` set to **"subtle"** by Phase 6b of the watch script. Factory default was "high". Subtle provides ambient glow without competing with the 77" OLED image.
