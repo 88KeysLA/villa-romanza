@@ -555,6 +555,48 @@ Verified during integration (2026-02-14):
 
 ---
 
+## Master Cinema — Watch Mode Lighting
+
+Tuned during live session (2026-02-15). Codified in `script.watch_master_cinema` Phases 6b-6d.
+
+### Hue Entertainment Area (HueB-26-MB2 at 192.168.20.36)
+
+Entertainment area "Master Theatre" (`15434d2f-c3b5-45ee-bb5f-41331942f956`) was edited to optimize sync for movie watching:
+
+| Light | In Sync Group | Equalization | Role |
+|---|---|---|---|
+| Master TV | Yes | 1.0 | Primary TV backlight |
+| Master TV Left | Yes | 1.0 | Side accent |
+| Master TV Right | Yes | 1.0 | Side accent |
+| Master TV Tube | Yes | 1.0 | Above-TV tube |
+| Master Bed Tube | Yes | 1.0 | Bed headboard tube |
+| TV Floor | Yes | 1.0 | Floor glow |
+| Wall Washer 1 (Bed Left) | Yes | **0.3** | Reduced to 30% — prevents wall wash from overpowering TV |
+| Wall Washer 2 (Bed Right) | Yes | **0.3** | Reduced to 30% — prevents wall wash from overpowering TV |
+| **Master Lamp L** | **Removed** | — | Set to 1% warm dim (2200K) by script |
+| **Master Lamp R** | **Removed** | — | Set to 1% warm dim (2200K) by script |
+
+Wall washer equalization set via Hue v2 API on the entertainment area resource (not through HA).
+
+### HSB Intensity
+`select.master2_intensity` set to **"subtle"** by Phase 6b of the watch script. Factory default was "high". Subtle provides ambient glow without competing with the 77" OLED image.
+
+### Suite-Wide Blackout (Phase 6c)
+During watch mode, ALL lights across the master suite are turned off (parallel `light.turn_off`):
+- `light.master_bedroom` — 33 lights (bedroom, dressing rooms, bar, entry)
+- `light.her_dressing` — 2 lights
+- `light.mb_entry` — 5 lights
+- `light.his_bath` — 9 lights
+- `light.her_bath` — 20 lights
+- `light.his_wc`, `light.her_wc`
+- `light.lounge` — 8 lights
+- `light.his_closet` — 2 lights
+
+### Crestron Integration
+Crestron REST API has no programmatic mode push capability. The CPLLC integration syncs 53 HA entities but adding watch-mode lighting presets requires the Crestron Home Setup app. **TODO**: Create a "Watch" scene in Crestron Setup app for the Master Cinema room.
+
+---
+
 ## Deferred / TODO (applies to all rooms)
 
 - **Multichannel audio**: Both rooms show 2ch PCM on AVR. Theatre likely needs VRROOM EDID `audiotx0` → `allaudio`. Master Cinema (no VRROOM) may need TV audio passthrough settings.

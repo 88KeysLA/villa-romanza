@@ -392,10 +392,29 @@ class TestMasterCinemaAV:
         "remote.atv_master_cinema",
         "button.wol_tv_master_cinema",
         "switch.master2_light_sync",
+        "media_player.master_cinema_in",
+        "media_player.master_cinema_out",
+        "media_player.avr_master_zone2",
+        "select.master2_intensity",
     ])
     def test_master_cinema_entity_exists(self, entity_id):
         r = self._get(f"/api/states/{entity_id}")
         assert r.status_code == 200, f"Entity {entity_id} not found"
+
+    @pytest.mark.parametrize("entity_id", [
+        "light.master_lamp_l",
+        "light.master_lamp_r",
+        "light.master_theatre",
+    ])
+    def test_master_cinema_light_exists(self, entity_id):
+        r = self._get(f"/api/states/{entity_id}")
+        assert r.status_code == 200, f"Entity {entity_id} not found"
+
+    def test_master_cinema_intensity_options(self):
+        r = self._get("/api/states/select.master2_intensity")
+        assert r.status_code == 200
+        options = r.json()["attributes"]["options"]
+        assert "subtle" in options, "HSB 'subtle' intensity option missing"
 
     def test_master_cinema_script_exists(self):
         r = self._get("/api/states/script.watch_master_cinema")
