@@ -323,13 +323,24 @@ sequence:
     target:
       entity_id: switch.<room>_light_sync
   - delay: {seconds: 1}
-  - alias: "Power off TV (real shutdown → CEC standby to AVR)"
+  - alias: "Power off TV (real shutdown)"
     action: webostv.command
     target:
       entity_id: media_player.tv_<room>
     data:
       command: "system/turnOff"
   - delay: {seconds: 5}
+  - alias: "AVR off (CEC fallback)"
+    if:
+      - condition: state
+        entity_id: media_player.avr_<room>
+        state: "on"
+    then:
+      - action: media_player.turn_off
+        target:
+          entity_id: media_player.avr_<room>
+        continue_on_error: true
+  - delay: {seconds: 2}
   - alias: "Turn off lights"
     action: light.turn_off
     target:
@@ -339,7 +350,7 @@ sequence:
 ### Why this works
 - `webostv.command system/turnOff` = real standby (not Gallery mode)
 - CEC chain: TV off → HSB → HDMI → AVR standby (if CEC Power-Off Control is ON in AVR settings)
-- No need to explicitly turn off AVR — CEC handles it
+- **AVR fallback**: CEC cascade is unreliable (especially without VRROOM in the path). After 5s, if AVR is still on, explicitly turn it off via `media_player.turn_off`. Tested: `Z1POW0` works via the `anthemav` integration even though raw serial ignores it.
 - Lights go off last so you're not in the dark while the system shuts down
 
 ---
