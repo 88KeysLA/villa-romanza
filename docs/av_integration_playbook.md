@@ -8,16 +8,17 @@ Lessons learned from Theatre AV integration (2026-02-14). Use as a step-by-step 
 
 Before starting, inventory the room's AV chain and verify:
 
-| Item | Theatre (done) | Master Cinema (TODO) |
+| Item | Theatre (done) | Master Cinema (done) |
 |---|---|---|
 | **TV** | TV-Theatre, 192.168.1.72, LG C5 83" | TV-MasterCinema, 192.168.1.71, LG C5 77" |
 | **AVR** | AVR-Theatre, 192.168.0.130, MRX-740 | AVR-Master, 192.168.0.131, MRX-540 |
-| **Apple TV** | ATV-Theatre, 192.168.1.77 | ATV-MasterBedroom, 192.168.1.76 |
-| **Hue Sync Box** | HSB Theatre (192.168.20.92) | HSB Master Cinema (check IP) |
-| **VRROOM/switcher** | VRROOM 192.168.1.70 (shared) | Direct HDMI? Or second VRROOM output? |
-| **Sonos Ports** | Theatre In (.theatre_in), Theatre Out (.theatre_out) | Check if Master has Sonos Ports |
-| **Hue lights** | 10 lights, Theatre area | Master Cinema lights, check area |
-| **Xbox / other sources** | XBX-Theatre (cloud) | Any additional sources? |
+| **Apple TV** | ATV-Theatre, 192.168.1.77 | ATV-MasterCinema, 192.168.1.76 |
+| **Hue Sync Box** | HSB Theatre (192.168.20.92) | HSB Master2 |
+| **VRROOM/switcher** | VRROOM 192.168.1.70 (shared) | None — direct HDMI |
+| **Sonos Ports** | Theatre In/Out | MasterCinemaIn (→AVR), MasterCinemaOut (AVR→Sonos) |
+| **Sonos Bedroom** | N/A | 5 speakers: Bed, Rear, Entry, His, Hers |
+| **Hue lights** | 10 lights, Theatre area | 8 lights, Master Cinema area |
+| **Xbox / other sources** | XBX-Theatre (cloud) | N/A |
 
 ### Network prerequisites
 - All devices must have **fixed DHCP reservations** (use `dhcp_force_renew.py`)
@@ -318,10 +319,19 @@ description: >
 icon: mdi:power-off
 mode: single
 sequence:
-  - alias: "Disable sync"
-    action: switch.turn_off
-    target:
-      entity_id: switch.<room>_light_sync
+  - alias: "Phase 1 — Parallel cleanup"
+    parallel:
+      - alias: "Disable sync"
+        action: switch.turn_off
+        target:
+          entity_id: switch.<room>_light_sync
+      # If room has Sonos bedroom group, unjoin here:
+      # - action: media_player.unjoin
+      #   target:
+      #     entity_id: media_player.<speaker1>, media_player.<speaker2>, ...
+      # - action: media_player.turn_off
+      #   target:
+      #     entity_id: media_player.avr_<room>_zone2
   - delay: {seconds: 1}
   - alias: "Power off TV (real shutdown)"
     action: webostv.command
@@ -352,10 +362,101 @@ sequence:
 - CEC chain: TV off → HSB → HDMI → AVR standby (if CEC Power-Off Control is ON in AVR settings)
 - **AVR fallback**: CEC cascade is unreliable (especially without VRROOM in the path). After 5s, if AVR is still on, explicitly turn it off via `media_player.turn_off`. Tested: `Z1POW0` works via the `anthemav` integration even though raw serial ignores it.
 - Lights go off last so you're not in the dark while the system shuts down
+- **Sonos unjoin in Phase 1 (parallel)**: Runs concurrently with sync disable. Speakers return to standalone mode.
+- **Zone 2 off in Phase 1**: Stops signal to Sonos Port before TV shutdown
 
 ---
 
-## Step 9 — Verification Checklist
+## Step 9 — Sonos Bedroom Audio Extension
+
+For rooms with Anthem AVRs that have preamp/Zone 2 outputs, Sonos Ports can distribute audio to bedroom speakers. This extends the cinema experience to adjacent rooms.
+
+### Physical wiring
+```
+AVR Zone 2 / Preamp Out → Sonos Port (Line-in) → Sonos Group → Bedroom Speakers
+```
+
+**Critical**: The Sonos Port receiving AVR output uses its **Line-in** jack. The other Port (if present) sends audio **to** the AVR analog input. Don't confuse them.
+
+### Entity naming
+- `media_player.<room>_in` — Sonos Port that sends audio INTO the AVR (Sonos→AVR, line-out)
+- `media_player.<room>_out` — Sonos Port that receives audio FROM the AVR (AVR→Sonos, line-in)
+
+### Setup procedure
+
+1. **Identify the correct Sonos Port**: Find which Port has the AVR preamp cable connected to its Line-in. Play audio on the AVR, then select Line-in source on each Port candidate. The one that passes audio is the right one.
+
+2. **Enable AVR Zone 2**: The AVR's preamp/Zone 2 output must be ON for signal to flow:
+   ```yaml
+   action: media_player.turn_on
+     target:
+       entity_id: media_player.avr_<room>_zone2
+   action: media_player.select_source
+     target:
+       entity_id: media_player.avr_<room>_zone2
+     data:
+       source: "<same as main zone>"
+   action: media_player.volume_set
+     target:
+       entity_id: media_player.avr_<room>_zone2
+     data:
+       volume_level: 0.3
+   ```
+
+3. **Create Sonos group**: Join bedroom speakers to the Port as group leader:
+   ```yaml
+   # Set Port to Line-in source
+   action: media_player.select_source
+     target:
+       entity_id: media_player.<room>_out
+     data:
+       source: "Line-in"
+   # Join speakers
+   action: media_player.join
+     target:
+       entity_id: media_player.<room>_out
+     data:
+       group_members:
+         - media_player.speaker1
+         - media_player.speaker2
+   # IMPORTANT: Group starts paused — must explicitly play
+   action: media_player.media_play
+     target:
+       entity_id: media_player.<room>_out
+   ```
+
+4. **Set individual volumes**: Each speaker has independent volume within the group:
+   ```yaml
+   action: media_player.volume_set
+     target:
+       entity_id: media_player.speaker1
+     data:
+       volume_level: 0.22
+   ```
+
+### Gotchas
+
+1. **Group starts paused.** After `media_player.join`, the group state is "paused". Must send `media_player.media_play` to the group leader to start audio flow.
+2. **AVR mute kills preamp output.** When the AVR main zone is muted, the preamp/Zone 2 output is also muted — no signal reaches the Sonos Port.
+3. **Speakers can drop from groups.** When joining new members or adjusting volumes, existing group members may silently drop. Always verify `group_members` attribute after changes.
+4. **Port name confusion.** Physical wiring determines which Port is "in" vs "out". Use the test-and-play method to identify the correct one. Rename entities if they're backwards.
+5. **Sonos favorites for testing.** Use `browse_media` to discover favorites: `media_content_type: "favorite_item_id"`, `media_content_id: "FV:2/<n>"`. Useful for testing individual speakers before grouping.
+
+### Master Cinema preset (tuned 2026-02-15)
+
+| Speaker | Entity | Volume | Notes |
+|---|---|---|---|
+| AVR Main Zone | `media_player.avr_master` | 30% (script) | Script sets 30%, user tunes during listening |
+| AVR Zone 2 | `media_player.avr_master_zone2` | 30% | Source: "Apple TV" |
+| Master Bed | `media_player.master_bed` | 22% | Era 300 stereo pair |
+| Master Entry | `media_player.master_entry` | 23% | |
+| His | `media_player.his` | 19% | |
+| Hers | `media_player.hers` | 19% | |
+| Master Rear | `media_player.master_rear` | 16% | Era 100 stereo pair |
+
+---
+
+## Step 10 — Verification Checklist
 
 After integration, test each of these:
 
@@ -365,11 +466,14 @@ After integration, test each of these:
 - [ ] `media_player.avr_<room>` can power on and shows correct source
 - [ ] AVR volume responds to `media_player.volume_set`
 - [ ] Apple TV shows current playback state
-- [ ] Power-on script completes in ~20s with correct final state
+- [ ] Power-on script completes in ~20-25s with correct final state
 - [ ] Power-off script cleanly shuts down all devices (~10s)
 - [ ] CEC chain or AVR fallback shuts AVR down
 - [ ] Light sync activates and deactivates correctly
 - [ ] Audio is multichannel (not 2ch stereo) — check AVR display
+- [ ] (If Sonos) Zone 2 turns on and Sonos Port receives audio
+- [ ] (If Sonos) All bedroom speakers join group and play audio
+- [ ] (If Sonos) Power-off unjoins all speakers and stops Zone 2
 
 ---
 
@@ -397,7 +501,7 @@ After integration, test each of these:
 
 | Test | Result | Notes |
 |---|---|---|
-| `watch_master_cinema` cold start | **PASS — 18s** | All off → all on |
+| `watch_master_cinema` cold start | **PASS — ~25s** | All off → all on, incl Sonos group |
 | WoL TV-MasterCinema | **PASS** | TV woke in 3s from standby |
 | TV source HDMI 2 | **PASS** | HSB output on HDMI 2 |
 | TV sound output `external_arc` | **PASS** | Set via `webostv.select_sound_output` |
@@ -405,18 +509,27 @@ After integration, test each of these:
 | AVR volume 30% | **PASS** | Retry loop set correctly |
 | HSB Master2 light sync | **PASS** | Activated after AVR config |
 | Evening scene | **PASS** | Warm orange, 8 lights |
-| `master_cinema_off` | **PASS — ~10s** | All devices off |
+| Zone 2 on + source | **PASS** | `avr_master_zone2` on, source "Apple TV", vol 30% |
+| Sonos group (5 speakers) | **PASS** | Bed 22%, Rear 16%, Entry 23%, His 19%, Hers 19% |
+| Sonos audio from AVR | **PASS** | Line-in on `master_cinema_out` receives preamp signal |
+| `master_cinema_off` | **PASS — ~10s** | All devices off, Sonos unjoined |
 | TV `system/turnOff` | **PASS** | Real standby (not Gallery mode) |
 | CEC → AVR standby | **FAIL** | CEC does NOT cascade (no VRROOM in path) |
 | AVR fallback | **PASS** | `media_player.turn_off` shuts AVR down reliably |
+| Sonos unjoin on off | **PASS** | All 5 speakers return to standalone |
+| Zone 2 off on off | **PASS** | Stops preamp signal to Sonos Port |
 
 ### Key Findings
 
 1. **CEC cascade works in Theatre** (TV → HSB → VRROOM eARC OUT → Anthem) but **not in Master Cinema** (TV → HSB → TV eARC → Anthem). The VRROOM appears to be critical for CEC relay.
 2. **AVR fallback is essential.** `media_player.turn_off` via the `anthemav` integration successfully powers off the AVR, despite documentation saying `Z1POW0` is silently ignored over serial. The integration may use a different mechanism.
 3. **Quick Start+ must be enabled** on LG C5 TVs for WoL to work. Without it, `system/turnOff` puts the TV in deep power-off (state: "unavailable") where the NIC is completely off. With Quick Start+, state goes to "off" (standby with NIC alive).
-4. **Watch scripts are fast.** Cold start ~18-21s, warm start ~16s. The `choose` block in Phase 4 correctly shortcuts when AVR is already on.
+4. **Watch scripts are fast.** Cold start ~18-25s (longer with Sonos group), warm start ~16s. The `choose` block in Phase 4 correctly shortcuts when AVR is already on.
 5. **Both rooms show 2ch PCM** on the AVR — multichannel audio is still a TODO.
+6. **Sonos Port naming matters.** Physical cable determines which Port is "in" vs "out". Test by playing audio on AVR and checking which Port receives signal on Line-in. Entity names were swapped during Master Cinema setup after discovering wiring mismatch.
+7. **Sonos groups start paused.** After `media_player.join`, must send `media_player.media_play` to the group leader.
+8. **AVR Zone 2 required for preamp output.** Without Zone 2 ON, no signal flows from AVR preamp to Sonos Port.
+9. **AVR mute kills preamp output.** Main zone mute also silences Zone 2/preamp — can't isolate bedroom speakers by muting AVR.
 
 ---
 
@@ -435,6 +548,10 @@ Verified during integration (2026-02-14):
 | **No VRROOM** | Single source (Apple TV), no routing needed |
 | **ATV-MasterCinema** | Renamed from ATV-MasterBedroom, dedicated to cinema |
 | **CEC** | Does NOT cascade to AVR — must use explicit `media_player.turn_off` fallback |
+| **Sonos Port (out)** | `media_player.master_cinema_out` — AVR preamp → Sonos (group leader, Line-in) |
+| **Sonos Port (in)** | `media_player.master_cinema_in` — Sonos → AVR (line-out to analog input) |
+| **AVR Zone 2** | `media_player.avr_master_zone2` — must be ON for preamp output to Sonos |
+| **Sonos group** | 5 speakers: master_bed (22%), master_rear (16%), master_entry (23%), his (19%), hers (19%) |
 
 ---
 
