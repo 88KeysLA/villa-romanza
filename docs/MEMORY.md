@@ -82,17 +82,18 @@
 - **TV-2ndGuest** (.75, deferred): OLED65G1PUA 65" G1 2021, MAC TBD
 - Modern C5s use Arcadyan WiFi modules (OUI shows Arcadyan, not LG)
 - "Theatre" = bar theatre, "Master Cinema" = master suite cinema
-- **webOS integration**: TV-Theatre paired (entry `01KHDS0YENCKFCRNCBX53XX6GK`). Entity: `media_player.tv_theatre`. SIMPLINK must be ON for CEC chain. Other TVs NOT yet paired.
+- **webOS integration**: TV-Theatre paired (entry `01KHDS0YENCKFCRNCBX53XX6GK`). Entity: `media_player.tv_theatre`. TV-MasterCinema paired (entry `01KHF9B8P962PHQQX8S4WRB6FS`). Entity: `media_player.tv_master_cinema`. SIMPLINK must be ON for CEC chain.
 - **Mystery 42" C5** (OLED42C5PUA) discovered — not in original inventory
 - **webOS API init delay**: After WoL wake, need 5s delay before sending commands — API not ready immediately
 
 ## Apple TV Inventory (2026-02-09)
-- **ATV-MasterBedroom** (.76): Apple TV 4K gen 3
+- **ATV-MasterCinema** (.76): Apple TV 4K gen 3 (was ATV-MasterBedroom, renamed 2026-02-14)
 - **ATV-Theatre** (.77): Apple TV 4K gen 3 (was ATV-Bar, renamed 2026-02-14)
 - **ATV-Bar2** (.79): Apple TV 4K gen 3 (second Bar-area ATV)
 - **ATV-Sunroom** (.80): Apple TV 4K gen 2
 - **ATV-Cabana** (.81): Apple TV 4K gen 2
-- **ATV-Theatre paired** (2026-02-14): entry `01KHDSAJRMVMV650HGZWWK8927`, entities: `media_player.atv_theatre`, `remote.atv_theatre`. 3-step PIN pairing (AirPlay, Companion, RAOP). Other ATVs NOT yet paired.
+- **ATV-Theatre paired** (2026-02-14): entry `01KHDSAJRMVMV650HGZWWK8927`, entities: `media_player.atv_theatre`, `remote.atv_theatre`.
+- **ATV-MasterCinema paired** (2026-02-14): entry `01KHFAH265ZTX4436J184YTJSK`, entities: `media_player.atv_master_cinema`, `remote.atv_master_cinema`. 3-step PIN pairing (AirPlay, Companion, RAOP).
 
 ## Anthem AVR Integration (2026-02-14)
 - **AVR-Theatre** (.130): MRX-740, `media_player.avr_theatre`, area: Theatre, MAC `50:1e:2d:43:a0:c0`, entry `01KH62QPRWS1GQANQQZAKST1D0`
@@ -116,6 +117,14 @@
 - **Key pattern**: `continue_on_error: true` on all TV/AVR service calls prevents webOS API errors from aborting entire script. `repeat/while` with `state_attr()` checks for deterministic AVR config.
 - **`button.wol_tv_theatre`**: Wake on LAN (entry `01KHF5NPFJZ890VEW185876CFH`). Built-in webOS WoL returns 500 error — separate `wake_on_lan` integration needed.
 - **TV Gallery Mode**: `media_player.turn_off` sends LG C5 to Gallery+ screensaver, NOT standby. Must use `webostv.command` with `system/turnOff`.
+
+## Master Cinema AV Scripts (2026-02-14)
+- **Signal chain**: Apple TV (.76) → HSB Master2 HDMI1 → HSB OUT → TV-MasterCinema HDMI 2 → eARC → AVR-Master (.131). No VRROOM — simpler than Theatre.
+- **`script.watch_master_cinema`**: WoL TV + AVR on + scene (parallel) → wait TV → 5s webOS init → configure TV (HDMI 2, external_arc) → wait AVR → retry source ("Apple TV", max 5) → retry volume (0.3, max 3) → enable HSB sync (`switch.master2_light_sync`). ~20s runtime.
+- **`script.master_cinema_off`**: Disable sync → `webostv.command` `system/turnOff` → CEC cascades standby to Anthem → lights off (`light.master_theatre`). ~7s runtime.
+- **`button.wol_tv_master_cinema`**: Wake on LAN (entry `01KHF9BQCAQD27ZAKG0X6KJFCF`). MAC `60:75:6c:32:c3:f2`.
+- **Key differences from Theatre**: TV source HDMI 2 (not 1), AVR source "Apple TV" (not "Cinema"), HSB entities `master2_*`, no VRROOM routing step, scene `scene.master_theatre_evening`.
+- **CEC chain**: TV `system/turnOff` → HSB → TV eARC → AVR standby (same pattern as Theatre but no VRROOM in path).
 
 ## Crestron Integration (2026-02-07)
 - **CP4-R**: 192.168.1.2 (Core VLAN), Crestron Home OS v4.009.0110, VRROOM device, 14 touch panels
@@ -169,7 +178,7 @@
   - Port 0 / RX0: Show Mini (TouchDesigner) — `device_tracker.show_mini`
   - Port 1 / RX1: Xbox
   - Port 2 / RX2: FX Mini (audio→NDI) — `device_tracker.fx_mini`
-  - Port 3 / RX3: Apple TV (ATV-Bar, .77)
+  - Port 3 / RX3: Apple TV (ATV-Theatre, .77)
   - Port 4: Splitter mode (TX0 mirrors TX1)
 - **Signal Chain**: Sources → VRROOM → TX0 → HSB Theatre HDMI1 → TV-Theatre HDMI 1; TX1 → mux → 3x 8ch splitters → 18 HSBs + Library TV; eARC Out → Anthem eARC
 - **eARC OUT is a passthrough relay** — routes TV eARC → Anthem. TV MUST have eARC On + Digital Sound Out: Pass Through. Audio chain: Source → VRROOM → HSB → TV → eARC return → VRROOM → eARC OUT → Anthem.

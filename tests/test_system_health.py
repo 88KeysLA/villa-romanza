@@ -113,7 +113,7 @@ class TestHAIntegrations:
         assert "components" in data
 
     @pytest.mark.parametrize("integration", [
-        "hdfury", "hue", "sonos", "anthemav", "crestron_home", "unifi", "huesyncbox",
+        "hdfury", "hue", "sonos", "anthemav", "crestron_home", "unifi", "huesyncbox", "webostv", "apple_tv",
     ])
     def test_integration_loaded(self, integration):
         r = self._get("/api/config")
@@ -334,3 +334,73 @@ class TestAccessDevices:
     @pytest.mark.parametrize("ip", SAMPLE_CAMERAS)
     def test_sample_cameras_reachable(self, ip):
         assert _ping(ip), f"Camera at {ip} unreachable"
+
+
+# ── AV Room Entities ─────────────────────────────────────────────
+
+@pytest.mark.ha
+@pytest.mark.network
+class TestTheatreAV:
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, ha_base_url, ha_token):
+        self.url = ha_base_url
+        self.headers = {"Authorization": f"Bearer {ha_token}"}
+
+    def _get(self, path):
+        return httpx.get(f"{self.url}{path}", headers=self.headers, timeout=10)
+
+    @pytest.mark.parametrize("entity_id", [
+        "media_player.tv_theatre",
+        "media_player.avr_theatre",
+        "media_player.atv_theatre",
+        "remote.atv_theatre",
+        "media_player.xbx_theatre",
+        "button.wol_tv_theatre",
+        "switch.theatre_light_sync",
+        "select.hdfury_vrroom_11_port_select_tx0",
+    ])
+    def test_theatre_entity_exists(self, entity_id):
+        r = self._get(f"/api/states/{entity_id}")
+        assert r.status_code == 200, f"Entity {entity_id} not found"
+
+    def test_theatre_script_exists(self):
+        r = self._get("/api/states/script.watch_theatre")
+        assert r.status_code == 200, "script.watch_theatre not found"
+
+    def test_theatre_off_script_exists(self):
+        r = self._get("/api/states/script.theatre_off")
+        assert r.status_code == 200, "script.theatre_off not found"
+
+
+@pytest.mark.ha
+@pytest.mark.network
+class TestMasterCinemaAV:
+
+    @pytest.fixture(autouse=True)
+    def _setup(self, ha_base_url, ha_token):
+        self.url = ha_base_url
+        self.headers = {"Authorization": f"Bearer {ha_token}"}
+
+    def _get(self, path):
+        return httpx.get(f"{self.url}{path}", headers=self.headers, timeout=10)
+
+    @pytest.mark.parametrize("entity_id", [
+        "media_player.tv_master_cinema",
+        "media_player.avr_master",
+        "media_player.atv_master_cinema",
+        "remote.atv_master_cinema",
+        "button.wol_tv_master_cinema",
+        "switch.master2_light_sync",
+    ])
+    def test_master_cinema_entity_exists(self, entity_id):
+        r = self._get(f"/api/states/{entity_id}")
+        assert r.status_code == 200, f"Entity {entity_id} not found"
+
+    def test_master_cinema_script_exists(self):
+        r = self._get("/api/states/script.watch_master_cinema")
+        assert r.status_code == 200, "script.watch_master_cinema not found"
+
+    def test_master_cinema_off_script_exists(self):
+        r = self._get("/api/states/script.master_cinema_off")
+        assert r.status_code == 200, "script.master_cinema_off not found"
