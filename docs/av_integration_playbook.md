@@ -366,29 +366,82 @@ After integration, test each of these:
 - [ ] AVR volume responds to `media_player.volume_set`
 - [ ] Apple TV shows current playback state
 - [ ] Power-on script completes in ~20s with correct final state
-- [ ] Power-off script cleanly shuts down all devices (~7s)
-- [ ] CEC chain works: TV off cascades AVR to standby
+- [ ] Power-off script cleanly shuts down all devices (~10s)
+- [ ] CEC chain or AVR fallback shuts AVR down
 - [ ] Light sync activates and deactivates correctly
 - [ ] Audio is multichannel (not 2ch stereo) — check AVR display
 
 ---
 
-## Master Cinema — Differences from Theatre
+## Test Results (2026-02-14)
 
-Things to investigate before starting:
+### Theatre
 
-1. **No VRROOM in the chain** (unless Master Cinema uses the VRROOM TX1 distribution output). The signal chain is likely simpler: Apple TV → HSB → TV → eARC → AVR.
-2. **AVR source names**: MRX-540 may have different source names than MRX-740. Check `state_attr('media_player.avr_master', 'source_list')`.
-3. **Master Cinema is in the Master Suite** — respect the master suite exclusion from global service activation.
-4. **HSB identity**: Find which HSB is assigned to Master Cinema (check `ha_search_entities` for "master cinema" sync entities).
-5. **12 sub-rooms in Master Suite** — make sure entities go to "Master Cinema" area specifically, not the parent "Master Suite".
-6. **ATV-MasterBedroom** at 192.168.1.76 — may serve both bedroom and cinema. Clarify with user.
+| Test | Result | Notes |
+|---|---|---|
+| `watch_theatre` cold start | **PASS — 21s** | All off → all on |
+| WoL TV-Theatre | **PASS** | TV woke in 4s from standby |
+| TV source HDMI 1 (VRRoom) | **PASS** | Set via `media_player.select_source` |
+| TV sound output `external_arc` | **PASS** | Set via `webostv.select_sound_output` |
+| AVR source "Cinema" | **PASS** | Retry loop (max 5) set correctly |
+| AVR volume 30% | **PASS** | Retry loop (max 3) set correctly |
+| VRROOM port 3 (Apple TV) | **PASS** | Default source routed |
+| HSB Theatre light sync | **PASS** | Activated after AVR config |
+| Rest scene | **PASS** | Warm amber, 10 lights |
+| `theatre_off` | **PASS — ~10s** | All devices off |
+| TV `system/turnOff` | **PASS** | Real standby (not Gallery mode) |
+| CEC → AVR standby | **PASS** | CEC cascaded within 2s via VRROOM eARC |
+| AVR fallback (if needed) | **PASS** | `media_player.turn_off` as safety net |
+
+### Master Cinema
+
+| Test | Result | Notes |
+|---|---|---|
+| `watch_master_cinema` cold start | **PASS — 18s** | All off → all on |
+| WoL TV-MasterCinema | **PASS** | TV woke in 3s from standby |
+| TV source HDMI 2 | **PASS** | HSB output on HDMI 2 |
+| TV sound output `external_arc` | **PASS** | Set via `webostv.select_sound_output` |
+| AVR source "Apple TV" | **PASS** | Retry loop set correctly |
+| AVR volume 30% | **PASS** | Retry loop set correctly |
+| HSB Master2 light sync | **PASS** | Activated after AVR config |
+| Evening scene | **PASS** | Warm orange, 8 lights |
+| `master_cinema_off` | **PASS — ~10s** | All devices off |
+| TV `system/turnOff` | **PASS** | Real standby (not Gallery mode) |
+| CEC → AVR standby | **FAIL** | CEC does NOT cascade (no VRROOM in path) |
+| AVR fallback | **PASS** | `media_player.turn_off` shuts AVR down reliably |
+
+### Key Findings
+
+1. **CEC cascade works in Theatre** (TV → HSB → VRROOM eARC OUT → Anthem) but **not in Master Cinema** (TV → HSB → TV eARC → Anthem). The VRROOM appears to be critical for CEC relay.
+2. **AVR fallback is essential.** `media_player.turn_off` via the `anthemav` integration successfully powers off the AVR, despite documentation saying `Z1POW0` is silently ignored over serial. The integration may use a different mechanism.
+3. **Quick Start+ must be enabled** on LG C5 TVs for WoL to work. Without it, `system/turnOff` puts the TV in deep power-off (state: "unavailable") where the NIC is completely off. With Quick Start+, state goes to "off" (standby with NIC alive).
+4. **Watch scripts are fast.** Cold start ~18-21s, warm start ~16s. The `choose` block in Phase 4 correctly shortcuts when AVR is already on.
+5. **Both rooms show 2ch PCM** on the AVR — multichannel audio is still a TODO.
+
+---
+
+## Master Cinema — Confirmed Configuration
+
+Verified during integration (2026-02-14):
+
+| Item | Value |
+|---|---|
+| **Signal chain** | Apple TV (.76) → HSB Master2 HDMI1 → HSB OUT → TV HDMI 2 → eARC → AVR-Master (.131) |
+| **TV source** | HDMI 2 (not HDMI 1 like Theatre) |
+| **AVR source name** | "Apple TV" (not "Cinema" like Theatre) |
+| **HSB entities** | `switch.master2_light_sync`, `select.master2_sync_mode`, `select.master2_hdmi_input` |
+| **Scene** | `scene.master_theatre_evening` (warm orange, dynamic) |
+| **Lights** | `light.master_theatre` (8 bulbs: Master TV, TV Floor, Lamps L/R, TV Left/Right, TV Tube, Bed Tube) |
+| **No VRROOM** | Single source (Apple TV), no routing needed |
+| **ATV-MasterCinema** | Renamed from ATV-MasterBedroom, dedicated to cinema |
+| **CEC** | Does NOT cascade to AVR — must use explicit `media_player.turn_off` fallback |
 
 ---
 
 ## Deferred / TODO (applies to all rooms)
 
-- **Multichannel audio**: Theatre still at 2ch stereo. Likely needs VRROOM EDID `audiotx0` → `allaudio`. Master Cinema (no VRROOM) may work natively.
+- **Multichannel audio**: Both rooms show 2ch PCM on AVR. Theatre likely needs VRROOM EDID `audiotx0` → `allaudio`. Master Cinema (no VRROOM) may need TV audio passthrough settings.
 - **VRROOM diagnostic entities**: 11 disabled sensors to enable for audio diagnosis.
 - **HSB entertainment areas**: Must be configured in Hue app (not HA) per room.
 - **AVR-Sunroom**: MRX SLM not compatible with `anthemav` integration — awaiting update.
+- **CEC investigation**: Why does CEC cascade work through VRROOM but not through direct HSB→TV→AVR path?
