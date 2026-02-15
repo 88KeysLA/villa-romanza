@@ -44,6 +44,22 @@ ACCESS_READERS = {
 }
 SAMPLE_CAMERAS = ["192.168.4.50", "192.168.4.60", "192.168.4.80"]  # Garden, Kitchen, RoofNorth
 
+# Smart Things VLAN devices (current DHCP IPs until reservations are applied)
+SMART_THINGS_ECOBEES = {
+    "eco_1": "192.168.6.118",
+    "eco_2": "192.168.6.121",
+    "eco_3": "192.168.6.147",
+    "eco_4": "192.168.6.178",
+    "eco_5": "192.168.6.180",
+    "eco_6": "192.168.6.209",
+}
+SMART_THINGS_MYQ = {
+    "myq_1": "192.168.6.50",
+    "myq_2": "192.168.6.51",
+    "myq_3": "192.168.6.52",
+    "myq_4": "192.168.6.53",
+}
+
 
 def _ping(ip: str) -> bool:
     """Ping an IP once with 2s timeout (macOS)."""
@@ -334,6 +350,27 @@ class TestAccessDevices:
     @pytest.mark.parametrize("ip", SAMPLE_CAMERAS)
     def test_sample_cameras_reachable(self, ip):
         assert _ping(ip), f"Camera at {ip} unreachable"
+
+
+# ── Smart Things VLAN ────────────────────────────────────────────
+
+@pytest.mark.network
+@pytest.mark.smart_things
+class TestSmartThingsVLAN:
+
+    @pytest.mark.parametrize("name,ip", list(SMART_THINGS_ECOBEES.items()))
+    def test_ecobee_reachable(self, name, ip):
+        assert _ping(ip), f"Ecobee {name} at {ip} unreachable"
+
+    @pytest.mark.parametrize("name,ip", list(SMART_THINGS_MYQ.items()))
+    def test_myq_reachable(self, name, ip):
+        assert _ping(ip), f"MyQ {name} at {ip} unreachable"
+
+    def test_rachio_reachable(self):
+        assert _ping("192.168.6.182"), "Rachio sprinkler at 192.168.6.182 unreachable"
+
+    def test_irobot_reachable(self):
+        assert _ping("192.168.6.196"), "iRobot at 192.168.6.196 unreachable"
 
 
 # ── AV Room Entities ─────────────────────────────────────────────
