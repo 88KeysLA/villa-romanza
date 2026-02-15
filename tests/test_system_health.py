@@ -501,6 +501,10 @@ class TestMediaModeHelpers:
         for zone in ["Main Floor", "Bedrooms", "Outdoor", "All Indoor", "All"]:
             assert zone in options, f"Zone {zone} missing from sonos_zone_preset"
 
+    def test_listen_house_active_flag(self):
+        r = self._get("/api/states/input_boolean.listen_house_active")
+        assert r.status_code == 200, "listen_house_active not found"
+
     def test_villa_mode_manager_automation(self):
         r = self._get("/api/states/automation.media_mode_villa_mode_manager")
         assert r.status_code == 200, "Villa mode manager automation not found"
