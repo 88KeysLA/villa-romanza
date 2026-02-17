@@ -112,7 +112,7 @@
 - **VRROOM Port 1 / RX1**: Xbox input
 
 ## Theatre AV Scripts (2026-02-14)
-- **`script.watch_theatre`**: WoL TV + AVR on + VRROOM route + Rest scene (parallel) → wait TV → 5s webOS init → configure TV (HDMI 1, external_arc) → wait AVR → retry source (Cinema, max 5) → retry volume (0.3, max 3) → enable HSB sync. Has `source` field (0-3). ~20s runtime.
+- **`script.watch_theatre`**: WoL TV + AVR on + VRROOM route + Rest scene (parallel) → wait TV → 5s webOS init → configure TV (HDMI 1, external_arc) → wait AVR → retry source (Theatre, max 5) → retry volume (0.3, max 3) → enable HSB sync. Has `source` field (0-3). ~20s runtime.
 - **`script.theatre_off`**: Disable sync → `webostv.command` `system/turnOff` (NOT `media_player.turn_off` which goes to Gallery mode) → CEC cascades standby to Anthem → lights off. ~7s runtime.
 - **Key pattern**: `continue_on_error: true` on all TV/AVR service calls prevents webOS API errors from aborting entire script. `repeat/while` with `state_attr()` checks for deterministic AVR config.
 - **`button.wol_tv_theatre`**: Wake on LAN (entry `01KHF5NPFJZ890VEW185876CFH`). Built-in webOS WoL returns 500 error — separate `wake_on_lan` integration needed.
@@ -123,7 +123,7 @@
 - **`script.watch_master_cinema`**: WoL TV + AVR on + scene (parallel) → wait TV → 5s webOS init → configure TV (HDMI 2, external_arc) → wait AVR → retry source ("Apple TV", max 5) → retry volume (0.3, max 3) → enable HSB sync (`switch.master2_light_sync`). ~20s runtime.
 - **`script.master_cinema_off`**: Disable sync → `webostv.command` `system/turnOff` → CEC cascades standby to Anthem → lights off (`light.master_theatre`). ~7s runtime.
 - **`button.wol_tv_master_cinema`**: Wake on LAN (entry `01KHF9BQCAQD27ZAKG0X6KJFCF`). MAC `60:75:6c:32:c3:f2`.
-- **Key differences from Theatre**: TV source HDMI 2 (not 1), AVR source "Apple TV" (not "Cinema"), HSB entities `master2_*`, no VRROOM routing step, scene `scene.master_theatre_evening`.
+- **Key differences from Theatre**: TV source HDMI 2 (not 1), AVR source "Apple TV" (not "Theatre"), HSB entities `master2_*`, no VRROOM routing step, scene `scene.master_theatre_evening`.
 - **CEC chain**: TV `system/turnOff` → HSB → TV eARC → AVR standby (same pattern as Theatre but no VRROOM in path).
 
 ## Crestron Integration (2026-02-07)

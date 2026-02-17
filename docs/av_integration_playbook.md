@@ -46,7 +46,7 @@ Before starting, inventory the room's AV chain and verify:
 ### Critical gotchas
 1. **Power OFF does not work via HA.** `Z1POW0` is silently ignored over IP/serial. Power OFF only works via **CEC chain** (TV sends standby to AVR through HDMI).
 2. **Boot race condition.** After power-on, the AVR sends a status dump with defaults (TV Music source, -35 dB volume). Any commands sent during this window (~5-8 seconds) get overwritten. **Fix**: Use `repeat/while` retry loops that check `state_attr()` until the actual value matches.
-3. **Source names.** Check `state_attr('media_player.avr_master', 'source_list')` for exact source names. Theatre uses "Cinema". Master may differ.
+3. **Source names.** Check `state_attr('media_player.avr_master', 'source_list')` for exact source names. Theatre uses "Theatre". Master uses "Apple TV".
 
 ---
 
@@ -487,7 +487,7 @@ After integration, test each of these:
 | WoL TV-Theatre | **PASS** | TV woke in 4s from standby |
 | TV source HDMI 1 (VRRoom) | **PASS** | Set via `media_player.select_source` |
 | TV sound output `external_arc` | **PASS** | Set via `webostv.select_sound_output` |
-| AVR source "Cinema" | **PASS** | Retry loop (max 5) set correctly |
+| AVR source "Theatre" | **PASS** | Retry loop (max 5) set correctly |
 | AVR volume 30% | **PASS** | Retry loop (max 3) set correctly |
 | VRROOM port 3 (Apple TV) | **PASS** | Default source routed |
 | HSB Theatre light sync | **PASS** | Activated after AVR config |
@@ -541,7 +541,7 @@ Verified during integration (2026-02-14):
 |---|---|
 | **Signal chain** | Apple TV (.76) → HSB Master2 HDMI1 → HSB OUT → TV HDMI 2 → eARC → AVR-Master (.131) |
 | **TV source** | HDMI 2 (not HDMI 1 like Theatre) |
-| **AVR source name** | "Apple TV" (not "Cinema" like Theatre) |
+| **AVR source name** | "Apple TV" (not "Theatre" like Theatre AVR) |
 | **HSB entities** | `switch.master2_light_sync`, `select.master2_sync_mode`, `select.master2_hdmi_input` |
 | **Scene** | `scene.master_theatre_evening` (warm orange, dynamic) |
 | **Lights** | `light.master_theatre` (8 bulbs: Master TV, TV Floor, Lamps L/R, TV Left/Right, TV Tube, Bed Tube) |
